@@ -5,7 +5,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 // Uruchomienie skanowania SonarQube
-                withSonarQubeEnv('python1') { // Nazwa serwera SonarQube skonfigurowana w Jenkins
+                withSonarQubeEnv('sonar') { // Nazwa serwera SonarQube skonfigurowana w Jenkins
                     sh '''
                         sonar-scanner
                         -Dsonar.projectKey=my-python-project
