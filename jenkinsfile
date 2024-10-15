@@ -6,12 +6,19 @@ pipeline {
     stages {
         stage('Scan') {
             steps {
-                withSonarQubeEnv(installationName: 'sq1') {
-                    // Zakładam, że używasz `sonar-scanner`, więc możesz dostosować komendę w zależności od swojego projektu
-                    sh 'sonar-scanner -Dsonar.projectKey=your_project_key -Dsonar.sources=. -Dsonar.language=py -Dsonar.sourceEncoding=UTF-8'
+                script {
+                    // Get the path to SonarQube Scanner installation directory
+                    def scannerHome = tool 'SonarQubeScanner';
+                    echo "SonarQube Scanner installation directory: ${scannerHome}"
+    
+                    withSonarQubeEnv('sq1') {
+                        // Użycie zmiennej scannerHome, zamiast pisania komendy bezpośrednio
+                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=your_project_key -Dsonar.sources=. -Dsonar.language=py -Dsonar.sourceEncoding=UTF-8"
+                    }
                 }
             }
         }
     }
 }
+
 
