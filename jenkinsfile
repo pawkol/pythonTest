@@ -1,23 +1,23 @@
 pipeline {
-    agent any
-
+    agent { label 'linux' }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
+    environment {
+        PATH = "/opt/sonar-scanner/bin:$PATH"
+    }
     stages {
-        stage('SonarQube Analysis') {
+        stage('Checkout') {
             steps {
-                // Uruchomienie skanowania SonarQube
-                withSonarQubeEnv('python1') { // Nazwa serwera SonarQube skonfigurowana w Jenkins
-                    sh '''
-                        /opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=my-python-project -Dsonar.sources=.
-                    '''
-                }
+                git url: 'https://github.com/pawkol/pythonTest.git'
             }
         }
-    }
-
-    post {
-        always {
-            // Zawsze, bez względu na wynik, np. wysyłanie e-maili, czyszczenie workspace
-            cleanWs()
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv(installationName: 'python1') { 
+                    sh 'sonar-scanner -Dsonar.projectKey=my-python-project -Dsonar.sources=.'
+                }
+            }
         }
     }
 }
