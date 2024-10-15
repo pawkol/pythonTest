@@ -1,0 +1,22 @@
+pipeline {
+    agent any
+
+        stage('SonarQube Analysis') {
+            steps {
+                // Uruchomienie skanowania SonarQube
+                withSonarQubeEnv('python1') { // Nazwa serwera SonarQube skonfigurowana w Jenkins
+                    sh 'sonar-scanner \
+                        -Dsonar.projectKey=my-python-project \
+                        -Dsonar.sources=. \
+                }
+            }
+        }
+
+        post {
+        always {
+            // Zawsze, bez względu na wynik, np. wysyłanie e-maili, czyszczenie workspace
+            cleanWs()
+        }
+    }
+}
+
