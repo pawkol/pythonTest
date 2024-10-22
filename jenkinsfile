@@ -4,15 +4,13 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '5'))
     }
     stages {
-        stage('Scan') {
-
-          stage('Dependency-Check') {
+        stage('Dependency-Check') {
             steps {
                 dependencyCheck additionalArguments: '--format XML', odcInstallation: 'dependency-check'
               }
           }
 
-
+        stage('Scan') {
             steps {
                 script {
                     // Get the path to SonarQube Scanner installation directory
