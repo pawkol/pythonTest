@@ -5,6 +5,14 @@ pipeline {
     }
     stages {
         stage('Scan') {
+
+          stage('Dependency-Check') {
+            steps {
+                dependencyCheck additionalArguments: '--format XML', odcInstallation: 'dependency-check'
+              }
+          }
+
+
             steps {
                 script {
                     // Get the path to SonarQube Scanner installation directory
