@@ -4,27 +4,12 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '5'))
     }
     stages {
-        stage('Checkout') {
+        stage('Dependency-Check') {
             steps {
-                checkout scm
+                dependencyCheck additionalArguments: '--format XML', odcInstallation: 'dependency-check'
             }
         }
-        stage('Build') {
-            steps {
-                script {
-                    // Uruchomienie Mavena
-                    sh 'mvn clean install'
-                }
-            }
-        }
-        stage('Dependency Check') {
-            steps {
-                script {
-                    // Uruchomienie Dependency Check
-                    sh 'mvn dependency-check:check'
-                }
-            }
-        }
+
         stage('SonarQube Analysis') {
             steps {
                 script {
