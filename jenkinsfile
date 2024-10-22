@@ -4,27 +4,42 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '5'))
     }
     stages {
-        stage('Dependency-Check') {
+        stage('Checkout') {
             steps {
-                dependencyCheck additionalArguments: '--format XML', odcInstallation: 'dependency-check'
-              }
-          }
-
-        stage('Scan') {
+                checkout scm
+            }
+        }
+        stage('Build') {
             steps {
                 script {
-                    // Get the path to SonarQube Scanner installation directory
-                    def scannerHome = tool 'SonarQubeScanner';
+                    // Uruchomienie Mavena
+                    sh 'mvn clean install'
+                }
+            }
+        }
+        stage('Dependency Check') {
+            steps {
+                script {
+                    // Uruchomienie Dependency Check
+                    sh 'mvn dependency-check:check'
+                }
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    // Użycie SonarQube Scanner
+                    def scannerHome = tool 'SonarQubeScanner'
                     echo "SonarQube Scanner installation directory: ${scannerHome}"
-    
+
                     withSonarQubeEnv('sq1') {
-                        // Użycie zmiennej scannerHome, zamiast pisania komendy bezpośrednio
-                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=your_project_key -Dsonar.sources=. -Dsonar.language=py -Dsonar.sourceEncoding=UTF-8"
+                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=python_project -Dsonar.sources=. -Dsonar.language=py -Dsonar.sourceEncoding=UTF-8"
                     }
                 }
             }
         }
     }
 }
+
 
 
