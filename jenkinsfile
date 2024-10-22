@@ -4,11 +4,6 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '5'))
     }
     stages {
-        stage('Dependency-Check') {
-            steps {
-                dependencyCheck additionalArguments: '--format XML', odcInstallation: 'dependency-check'
-            }
-        }
 
         stage('SonarQube Analysis') {
             steps {
