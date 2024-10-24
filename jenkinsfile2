@@ -39,7 +39,7 @@ pipeline {
     post {
         always {
             // Publikowanie wyników Dependency-Check w Jenkins
-            dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml', failBuildOnCVSS: 7, healthy: '', unHealthy: ''
+            dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
         }
     }
 }
