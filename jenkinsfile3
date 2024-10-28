@@ -6,12 +6,6 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                // Klonowanie kodu źródłowego z repozytorium
-                git 'https://twoje-repozytorium.git'
-            }
-        }
         
         stage('Dependency Check') {
             steps {
