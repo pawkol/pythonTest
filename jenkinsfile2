@@ -12,8 +12,11 @@ pipeline {
                     def dependencyCheckHome = tool 'DependencyCheck' // Upewnij się, że narzędzie jest zdefiniowane w Jenkins
                     echo "Dependency-Check installation directory: ${dependencyCheckHome}"
 
-                    // Uruchomienie Dependency-Check
-                    sh "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ./dependency-check-report"
+                    // Pobranie klucza API z poświadczeń
+                    withCredentials([string(credentialsId: 'NVD_API_KEY', variable: 'API_KEY')]) {
+                        // Uruchomienie Dependency-Check z kluczem API
+                        sh "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ./dependency-check-report --nvdApiKey ${API_KEY}"
+                    }
 
                     // Generowanie raportu w formacie XML do SonarQube
                     publishDependencyCheckResults('dependency-check-report', 'sonar.projectKey=python_project', 'sonar.dependencyCheck.reportPath=dependency-check-report/dependency-check-report.xml')
