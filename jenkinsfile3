@@ -3,6 +3,9 @@ pipeline {
     options {
         buildDiscarder(logRotator(numToKeepStr: '5'))
     }
+    environment {
+        WORKSPACE = pwd() // Definiowanie zmiennej WORKSPACE
+    }
     stages {
         stage('Dependency Check') {
             steps {
@@ -11,13 +14,8 @@ pipeline {
                     def dependencyCheckHome = tool 'DependencyCheck'
                     echo "Dependency-Check installation directory: ${dependencyCheckHome}"
 
-                    // Uruchomienie Dependency-Check
-                    def scanResult = sh(script: "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ./dependency-check-report", returnStatus: true)
-                    
-                    // Sprawdzenie statusu skanowania
-                    if (scanResult != 0) {
-                        error "Dependency-Check failed with status ${scanResult}. Check the logs for more details."
-                    }
+                    // Uruchomienie Dependency-Check z użyciem ścieżki WORKSPACE
+                    sh "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ${WORKSPACE}/dependency-check-report"
 
                     // Publikacja wyników Dependency-Check w Jenkins
                     dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
@@ -28,17 +26,11 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // Użycie SonarQube Scanner
                     def scannerHome = tool 'SonarQubeScanner'
                     echo "SonarQube Scanner installation directory: ${scannerHome}"
 
                     withSonarQubeEnv('sq1') {
-                        def sonarResult = sh(script: "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=python_project -Dsonar.sources=. -Dsonar.language=py -Dsonar.sourceEncoding=UTF-8", returnStatus: true)
-                        
-                        // Sprawdzenie statusu analizy SonarQube
-                        if (sonarResult != 0) {
-                            error "SonarQube analysis failed with status ${sonarResult}. Check the logs for more details."
-                        }
+                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=python_project -Dsonar.sources=. -Dsonar.language=py -Dsonar.sourceEncoding=UTF-8 -Dsonar.dependencyCheck.jsonReportPath=${WORKSPACE}/dependency-check-report/dependency-check-report.json -Dsonar.dependencyCheck.htmlReportPath=${WORKSPACE}/dependency-check-report/dependency-check-report.html"
                     }
                 }
             }
@@ -47,7 +39,6 @@ pipeline {
 
     post {
         always {
-            // Publikowanie wyników Dependency-Check w Jenkins
             dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
         }
         success {
