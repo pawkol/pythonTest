@@ -14,9 +14,9 @@ pipeline {
 
                     // Uruchomienie Dependency-Check
                     sh "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ./dependency-check-report"
-                    
-                    // Publikacja wyników Dependency-Check w SonarQube
-                    publishDependencyCheckResults('dependency-check-report', 'sonar.projectKey=python_project', 'sonar.dependencyCheck.reportPath=dependency-check-report/dependency-check-report.xml')
+
+                    // Publikacja wyników Dependency-Check w Jenkins
+                    dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
                 }
             }
         }
