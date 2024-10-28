@@ -1,39 +1,48 @@
 pipeline {
-    agent any
-
-    environment {
-        WORKSPACE_DIR = "${env.WORKSPACE}/dependency-check-report"
+    agent { label 'linux' }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
     }
-
     stages {
-        
         stage('Dependency Check') {
             steps {
-                // Uruchamianie Dependency-Check z generowaniem raportów JSON i HTML w wybranym katalogu
-                sh """
-                dependency-check.sh \
-                    --format JSON \
-                    --format HTML \
-                    --out ${WORKSPACE_DIR}
-                """
+                script {
+                    // Użycie Dependency-Check
+                    def dependencyCheckHome = tool 'DependencyCheck'
+                    echo "Dependency-Check installation directory: ${dependencyCheckHome}"
+
+                    // Uruchomienie Dependency-Check z dodatkowymi argumentami
+                    def scanResult = sh(script: "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --format JSON --format HTML -o ${WORKSPACE}/dependency-check-report", returnStatus: true)
+
+                    // Sprawdzenie statusu skanowania
+                    if (scanResult != 0) {
+                        error "Dependency-Check failed with status ${scanResult}. Check the logs for more details."
+                    }
+
+                    // Publikacja wyników Dependency-Check w Jenkins
+                    dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
+                }
             }
         }
 
         stage('SonarQube Analysis') {
-            environment {
-                // Konfiguracja SonarQube
-                SONAR_HOST_URL = 'http://sonarqube:9000'
-            }
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    // Uruchamianie analizy SonarQube z odpowiednimi ścieżkami do raportów Dependency-Check
-                    sh """
-                    sonar-scanner \
-                        -Dsonar.projectKey=python_project \
-                        -Dsonar.sources=. \
-                        -Dsonar.dependencyCheck.htmlReportPath=${WORKSPACE_DIR}/dependency-check-report.html \
-                        -Dsonar.dependencyCheck.jsonReportPath=${WORKSPACE_DIR}/dependency-check-report.json
-                    """
+                script {
+                    // Użycie SonarQube Scanner
+                    def scannerHome = tool 'SonarQubeScanner'
+                    echo "SonarQube Scanner installation directory: ${scannerHome}"
+
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=python_project \
+                                -Dsonar.sources=. \
+                                -Dsonar.language=py \
+                                -Dsonar.sourceEncoding=UTF-8 \
+                                -Dsonar.dependencyCheck.jsonReportPath=${WORKSPACE}/dependency-check-report/dependency-check-report.json \
+                                -Dsonar.dependencyCheck.htmlReportPath=${WORKSPACE}/dependency-check-report/dependency-check-report.html
+                        """
+                    }
                 }
             }
         }
@@ -41,20 +50,17 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'dependency-check-report/*.html, dependency-check-report/*.json', allowEmptyArchive: true
-            echo 'Build completed with warnings.'
+            // Publikowanie wyników Dependency-Check w Jenkins
+            dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
         }
-
         success {
-            echo 'Build and SonarQube analysis completed successfully!'
+            echo "Build completed successfully."
         }
-
         unstable {
-            echo 'Build completed with warnings. Check Dependency-Check or SonarQube for issues.'
+            echo "Build completed with warnings."
         }
-
         failure {
-            echo 'Build failed. Please review the logs for details.'
+            echo "Build failed."
         }
     }
 }
