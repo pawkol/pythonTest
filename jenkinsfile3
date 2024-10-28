@@ -4,7 +4,6 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '5'))
     }
     stages {
-
         stage('Dependency Check') {
             steps {
                 script {
@@ -13,7 +12,12 @@ pipeline {
                     echo "Dependency-Check installation directory: ${dependencyCheckHome}"
 
                     // Uruchomienie Dependency-Check
-                    sh "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ./dependency-check-report"
+                    def scanResult = sh(script: "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ./dependency-check-report", returnStatus: true)
+                    
+                    // Sprawdzenie statusu skanowania
+                    if (scanResult != 0) {
+                        error "Dependency-Check failed with status ${scanResult}. Check the logs for more details."
+                    }
 
                     // Publikacja wyników Dependency-Check w Jenkins
                     dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
@@ -29,7 +33,12 @@ pipeline {
                     echo "SonarQube Scanner installation directory: ${scannerHome}"
 
                     withSonarQubeEnv('sq1') {
-                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=python_project -Dsonar.sources=. -Dsonar.language=py -Dsonar.sourceEncoding=UTF-8"
+                        def sonarResult = sh(script: "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=python_project -Dsonar.sources=. -Dsonar.language=py -Dsonar.sourceEncoding=UTF-8", returnStatus: true)
+                        
+                        // Sprawdzenie statusu analizy SonarQube
+                        if (sonarResult != 0) {
+                            error "SonarQube analysis failed with status ${sonarResult}. Check the logs for more details."
+                        }
                     }
                 }
             }
@@ -40,6 +49,15 @@ pipeline {
         always {
             // Publikowanie wyników Dependency-Check w Jenkins
             dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
+        }
+        success {
+            echo "Build completed successfully."
+        }
+        unstable {
+            echo "Build completed with warnings."
+        }
+        failure {
+            echo "Build failed."
         }
     }
 }
