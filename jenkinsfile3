@@ -1,37 +1,45 @@
 pipeline {
-    agent { label 'linux' }
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '5'))
-    }
+    agent any
+
     environment {
-        WORKSPACE = pwd() // Definiowanie zmiennej WORKSPACE
+        WORKSPACE_DIR = "${env.WORKSPACE}/dependency-check-report"
     }
+
     stages {
+        stage('Checkout') {
+            steps {
+                // Klonowanie kodu źródłowego z repozytorium
+                git 'https://twoje-repozytorium.git'
+            }
+        }
+        
         stage('Dependency Check') {
             steps {
-                script {
-                    // Użycie Dependency-Check
-                    def dependencyCheckHome = tool 'DependencyCheck'
-                    echo "Dependency-Check installation directory: ${dependencyCheckHome}"
-
-                    // Uruchomienie Dependency-Check z użyciem ścieżki WORKSPACE
-                    sh "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ${WORKSPACE}/dependency-check-report"
-
-                    // Publikacja wyników Dependency-Check w Jenkins
-                    dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
-                }
+                // Uruchamianie Dependency-Check z generowaniem raportów JSON i HTML w wybranym katalogu
+                sh """
+                dependency-check.sh \
+                    --format JSON \
+                    --format HTML \
+                    --out ${WORKSPACE_DIR}
+                """
             }
         }
 
         stage('SonarQube Analysis') {
+            environment {
+                // Konfiguracja SonarQube
+                SONAR_HOST_URL = 'http://sonarqube:9000'
+            }
             steps {
-                script {
-                    def scannerHome = tool 'SonarQubeScanner'
-                    echo "SonarQube Scanner installation directory: ${scannerHome}"
-
-                    withSonarQubeEnv('sq1') {
-                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=python_project -Dsonar.sources=. -Dsonar.language=py -Dsonar.sourceEncoding=UTF-8 -Dsonar.dependencyCheck.jsonReportPath=${WORKSPACE}/dependency-check-report/dependency-check-report.json -Dsonar.dependencyCheck.htmlReportPath=${WORKSPACE}/dependency-check-report/dependency-check-report.html"
-                    }
+                withSonarQubeEnv('SonarQube') {
+                    // Uruchamianie analizy SonarQube z odpowiednimi ścieżkami do raportów Dependency-Check
+                    sh """
+                    sonar-scanner \
+                        -Dsonar.projectKey=python_project \
+                        -Dsonar.sources=. \
+                        -Dsonar.dependencyCheck.htmlReportPath=${WORKSPACE_DIR}/dependency-check-report.html \
+                        -Dsonar.dependencyCheck.jsonReportPath=${WORKSPACE_DIR}/dependency-check-report.json
+                    """
                 }
             }
         }
@@ -39,16 +47,20 @@ pipeline {
 
     post {
         always {
-            dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
+            archiveArtifacts artifacts: 'dependency-check-report/*.html, dependency-check-report/*.json', allowEmptyArchive: true
+            echo 'Build completed with warnings.'
         }
+
         success {
-            echo "Build completed successfully."
+            echo 'Build and SonarQube analysis completed successfully!'
         }
+
         unstable {
-            echo "Build completed with warnings."
+            echo 'Build completed with warnings. Check Dependency-Check or SonarQube for issues.'
         }
+
         failure {
-            echo "Build failed."
+            echo 'Build failed. Please review the logs for details.'
         }
     }
 }
