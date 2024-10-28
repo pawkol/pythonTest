@@ -12,9 +12,9 @@ word_count = {}
 # Iterujemy po każdym słowie w tekście
 for word in words:
     if word in word_count:
-        word_count[word] += 1  # Jeśli słowo jest już w słowniku, zwiększamy licznik
+        word_count[word] += 1  
     else:
-        word_count[word] = 1   # Jeśli nie, dodajemy je do słownika
+        word_count[word] = 1    
 
 # Wyświetlamy wyniki
 print("\nWystąpienia słów:")
