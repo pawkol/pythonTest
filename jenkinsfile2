@@ -12,13 +12,11 @@ pipeline {
                     def dependencyCheckHome = tool 'DependencyCheck' // Upewnij się, że narzędzie jest zdefiniowane w Jenkins
                     echo "Dependency-Check installation directory: ${dependencyCheckHome}"
 
-                    // Pobranie klucza API z poświadczeń
-                    withCredentials([string(credentialsId: 'NVD_API_KEY', variable: 'API_KEY')]) {
-                        // Uruchomienie Dependency-Check z kluczem API
-                        sh "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ./dependency-check-report --nvdApiKey ${API_KEY}"
-                    }
+                    // Uruchomienie Dependency-Check
+                    sh "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ./dependency-check-report"
 
                     // Generowanie raportu w formacie XML do SonarQube
+                    // Zmiana tutaj: dodanie publikacji wyników Dependency-Check do SonarQube
                     publishDependencyCheckResults('dependency-check-report', 'sonar.projectKey=python_project', 'sonar.dependencyCheck.reportPath=dependency-check-report/dependency-check-report.xml')
                 }
             }
@@ -32,17 +30,12 @@ pipeline {
                     echo "SonarQube Scanner installation directory: ${scannerHome}"
 
                     withSonarQubeEnv('sq1') {
+                        // Uruchomienie skanera SonarQube
                         sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=python_project -Dsonar.sources=. -Dsonar.language=py -Dsonar.sourceEncoding=UTF-8"
                     }
                 }
             }
         }
     }
-
-    post {
-        always {
-            // Publikowanie wyników Dependency-Check w Jenkins
-            dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
-        }
-    }
 }
+
