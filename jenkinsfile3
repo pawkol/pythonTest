@@ -4,6 +4,7 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '5'))
     }
     stages {
+
         stage('Dependency Check') {
             steps {
                 script {
@@ -13,17 +14,10 @@ pipeline {
 
                     // Uruchomienie Dependency-Check
                     sh "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ./dependency-check-report"
+                    
+                    // Publikacja wyników Dependency-Check w SonarQube
+                    publishDependencyCheckResults('dependency-check-report', 'sonar.projectKey=python_project', 'sonar.dependencyCheck.reportPath=dependency-check-report/dependency-check-report.xml')
                 }
-            }
-        }
-
-        stage('Publish Dependency Check Results') {
-            steps {
-                // Publikowanie wyników Dependency-Check w Jenkins
-                dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml', 
-                                         healthReport: [[minimumSeverities: [high: 1, medium: 1, low: 1], 
-                                                         maximumSeverities: [high: 5, medium: 5, low: 5]]],
-                                         failureThreshold: [high: 1, medium: 1, low: 1]
             }
         }
 
@@ -44,7 +38,8 @@ pipeline {
 
     post {
         always {
-            // Dodatkowe operacje po zakończeniu budowy, jeśli potrzebne
+            // Publikowanie wyników Dependency-Check w Jenkins
+            dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
         }
     }
 }
