@@ -11,8 +11,8 @@ pipeline {
                     def dependencyCheckHome = tool 'DependencyCheck'
                     echo "Dependency-Check installation directory: ${dependencyCheckHome}"
 
-                    // Uruchomienie Dependency-Check z dodatkowymi argumentami
-                    def scanResult = sh(script: "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --format JSON --format HTML -o ${WORKSPACE}/dependency-check-report", returnStatus: true)
+                    // Uruchomienie Dependency-Check z dodatkowymi formatami
+                    def scanResult = sh(script: "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --format JSON --format HTML --format XML -o ${WORKSPACE}/dependency-check-report", returnStatus: true)
 
                     // Sprawdzenie statusu skanowania
                     if (scanResult != 0) {
@@ -32,7 +32,7 @@ pipeline {
                     def scannerHome = tool 'SonarQubeScanner'
                     echo "SonarQube Scanner installation directory: ${scannerHome}"
 
-                    withSonarQubeEnv('SonarQube') {
+                    withSonarQubeEnv('sq1') {  // Upewnij się, że 'sq1' jest poprawną nazwą SonarQube
                         sh """
                             ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=python_project \
