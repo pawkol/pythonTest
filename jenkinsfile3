@@ -1,0 +1,50 @@
+pipeline {
+    agent { label 'linux' }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
+    stages {
+        stage('Dependency Check') {
+            steps {
+                script {
+                    // Użycie Dependency-Check
+                    def dependencyCheckHome = tool 'DependencyCheck'
+                    echo "Dependency-Check installation directory: ${dependencyCheckHome}"
+
+                    // Uruchomienie Dependency-Check
+                    sh "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ./dependency-check-report"
+                }
+            }
+        }
+
+        stage('Publish Dependency Check Results') {
+            steps {
+                // Publikowanie wyników Dependency-Check w Jenkins
+                dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml', 
+                                         healthReport: [[minimumSeverities: [high: 1, medium: 1, low: 1], 
+                                                         maximumSeverities: [high: 5, medium: 5, low: 5]]],
+                                         failureThreshold: [high: 1, medium: 1, low: 1]
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    // Użycie SonarQube Scanner
+                    def scannerHome = tool 'SonarQubeScanner'
+                    echo "SonarQube Scanner installation directory: ${scannerHome}"
+
+                    withSonarQubeEnv('sq1') {
+                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=python_project -Dsonar.sources=. -Dsonar.language=py -Dsonar.sourceEncoding=UTF-8"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Dodatkowe operacje po zakończeniu budowy, jeśli potrzebne
+        }
+    }
+}
