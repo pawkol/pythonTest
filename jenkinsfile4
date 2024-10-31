@@ -20,7 +20,7 @@ pipeline {
                             error "Dependency-Check failed with status ${scanResult}. Check the logs for more details."
                         }
 
-                        // Publikacja wyników Dependency-Check w Jenkins
+                        // Publish results of Dependency check in Jenkins
                         dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
                     }
                 }
