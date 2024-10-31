@@ -1,0 +1,68 @@
+pipeline {
+    agent { label 'linux' }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
+    stages {
+        stage('Dependency Check') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'NVD_API_TOKEN', variable: 'NVD_API_TOKEN')]) {
+                        // Dependency-Check
+                        def dependencyCheckHome = tool 'DependencyCheck'
+                        echo "Dependency-Check installation directory: ${dependencyCheckHome}"
+
+                        // Run Dependency-Check with additional formats
+                        def scanResult = sh(script: "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --format JSON --format HTML --format XML -o ${WORKSPACE}/dependency-check-report -Dnvd.api.token=${NVD_TOKEN}", returnStatus: true)
+
+                        // Check scan status
+                        if (scanResult != 0) {
+                            error "Dependency-Check failed with status ${scanResult}. Check the logs for more details."
+                        }
+
+                        // Publikacja wyników Dependency-Check w Jenkins
+                        dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
+                    }
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    // SonarQube Scanner
+                    def scannerHome = tool 'SonarQubeScanner'
+                    echo "SonarQube Scanner installation directory: ${scannerHome}"
+
+                    withSonarQubeEnv('sq1') {  
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=python_project \
+                                -Dsonar.sources=. \
+                                -Dsonar.language=py \
+                                -Dsonar.sourceEncoding=UTF-8 \
+                                -Dsonar.dependencyCheck.jsonReportPath=${WORKSPACE}/dependency-check-report/dependency-check-report.json \
+                                -Dsonar.dependencyCheck.htmlReportPath=${WORKSPACE}/dependency-check-report/dependency-check-report.html
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Publish results in Jenkins
+            dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
+        }
+        success {
+            echo "Build completed successfully."
+        }
+        unstable {
+            echo "Build completed with warnings."
+        }
+        failure {
+            echo "Build failed."
+        }
+    }
+}
