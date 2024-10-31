@@ -8,7 +8,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // Użycie SonarQube Scanner
+                    // SonarQube Scanner
                     def scannerHome = tool 'SonarQubeScanner'
                     echo "SonarQube Scanner installation directory: ${scannerHome}"
 
