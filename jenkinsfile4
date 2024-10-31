@@ -13,7 +13,7 @@ pipeline {
                         echo "Dependency-Check installation directory: ${dependencyCheckHome}"
 
                         // Run Dependency-Check with additional formats
-                        def scanResult = sh(script: "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --format JSON --format HTML --format XML -o ${WORKSPACE}/dependency-check-report --nvdApiKey=${NVD_TOKEN}", returnStatus: true)
+                        def scanResult = sh(script: "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --format JSON --format HTML --format XML -o ${WORKSPACE}/dependency-check-report --nvdApiKey=${NVD_API_KEY}", returnStatus: true)
                         // Check scan status
                         if (scanResult != 0) {
                             error "Dependency-Check failed with status ${scanResult}. Check the logs for more details."
