@@ -8,15 +8,12 @@ pipeline {
         stage('Dependency Check') {
             steps {
                 script {
-                    // Użycie Dependency-Check
-                    def dependencyCheckHome = tool 'DependencyCheck' // Upewnij się, że narzędzie jest zdefiniowane w Jenkins
+                    
+                    def dependencyCheckHome = tool 'DependencyCheck'
                     echo "Dependency-Check installation directory: ${dependencyCheckHome}"
-
-                    // Uruchomienie Dependency-Check
+      
                     sh "${dependencyCheckHome}/bin/dependency-check.sh --project python_project --scan . --out ./dependency-check-report"
 
-                    // Generowanie raportu w formacie XML do SonarQube
-                    // Zmiana tutaj: dodanie publikacji wyników Dependency-Check do SonarQube
                     publishDependencyCheckResults('dependency-check-report', 'sonar.projectKey=python_project', 'sonar.dependencyCheck.reportPath=dependency-check-report/dependency-check-report.xml')
                 }
             }
@@ -25,12 +22,10 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // Użycie SonarQube Scanner
                     def scannerHome = tool 'SonarQubeScanner'
                     echo "SonarQube Scanner installation directory: ${scannerHome}"
 
                     withSonarQubeEnv('sq1') {
-                        // Uruchomienie skanera SonarQube
                         sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=python_project -Dsonar.sources=. -Dsonar.language=py -Dsonar.sourceEncoding=UTF-8"
                     }
                 }
