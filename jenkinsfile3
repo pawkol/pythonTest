@@ -32,7 +32,7 @@ pipeline {
                     def scannerHome = tool 'SonarQubeScanner'
                     echo "SonarQube Scanner installation directory: ${scannerHome}"
 
-                    withSonarQubeEnv('sq1') {  // Upewnij się, że 'sq1' jest poprawną nazwą SonarQube
+                    withSonarQubeEnv('sq1') {  
                         sh """
                             ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=python_project \
